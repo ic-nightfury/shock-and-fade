@@ -253,7 +253,7 @@ sudo systemctl start polymarket-recorder
 # Paper trader (Germany server)
 sudo systemctl start shock-fade-paper
 
-# Live trader (Finland server)
+# Live trader (production server)
 sudo systemctl start shock-fade-live
 ```
 
@@ -273,19 +273,26 @@ kill -HUP <pid>
 
 ## Deployment
 
-The Finland live trading server has no git SSH key. Deploy via rsync:
+### Production Server
+
+Deploy via rsync (recommended for servers without git SSH keys):
 
 ```bash
+# Set your server details
+export SERVER="your-server-ip-or-domain"
+export REMOTE_DIR="/path/to/shock-and-fade"
+
 # Full deploy
-rsync -avz --exclude node_modules --exclude data --exclude .git . root@65.21.146.43:/root/shock-and-fade/
-ssh root@65.21.146.43 "systemctl restart shock-fade-live"
+rsync -avz --exclude node_modules --exclude data --exclude .git . root@$SERVER:$REMOTE_DIR/
+ssh root@$SERVER "cd $REMOTE_DIR && npm install --omit=dev"
+ssh root@$SERVER "systemctl restart shock-fade-live"
 
 # Config-only change (no restart needed)
-rsync -avz .env root@65.21.146.43:/root/shock-and-fade/.env
-ssh root@65.21.146.43 "systemctl reload shock-fade-live"
+rsync -avz .env root@$SERVER:$REMOTE_DIR/.env
+ssh root@$SERVER "systemctl reload shock-fade-live"
 ```
 
-Dashboard available at `http://65.21.146.43:3033`.
+**Dashboard:** Access via `http://your-server-ip:3033` (configure port in systemd service).
 
 ## Documentation
 

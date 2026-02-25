@@ -1,7 +1,7 @@
 /**
  * US-822: Live Trading Integration Tests
  *
- * Tests all live trading operations on Finland server:
+ * Tests all live trading operations on production server:
  * - TEST 1: Get Balance
  * - TEST 2: SPLIT via NegRiskAdapter (sports markets use this contract)
  * - TEST 3: SELL at Market Price
@@ -736,7 +736,7 @@ async function main() {
   );
   console.log("");
 
-  // Safety check: Verify we're on Finland server
+  // Safety check: Verify we're on production server
   const funder = process.env.POLYMARKET_FUNDER;
   if (funder !== EXPECTED_FUNDER) {
     console.error(`❌ SAFETY CHECK FAILED: Wrong funder address`);

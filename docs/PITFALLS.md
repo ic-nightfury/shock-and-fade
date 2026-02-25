@@ -52,7 +52,7 @@ Existing open positions keep their original config. Only new shock detections an
 ## Restarts During Active Trading
 
 ### rsync deploy MUST exclude .env
-The Finland server has its own `.env` with `SHOCK_*` trading config. If you rsync without `--exclude .env`, the Germany `.env` (no `SHOCK_*` vars) overwrites it and the bot falls back to defaults (wrong ladder sizes, wrong concurrent games, etc.). Always deploy with:
+The production server has its own `.env` with `SHOCK_*` trading config. If you rsync without `--exclude .env`, the Germany `.env` (no `SHOCK_*` vars) overwrites it and the bot falls back to defaults (wrong ladder sizes, wrong concurrent games, etc.). Always deploy with:
 ```bash
 rsync -avz --exclude node_modules --exclude data --exclude .git --exclude '*.db' --exclude .env ...
 ```

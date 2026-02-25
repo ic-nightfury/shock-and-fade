@@ -370,7 +370,7 @@ poly_arbitrage/
 ## Quick Commands
 
 ```bash
-# Start simulation (Finland server)
+# Start simulation (production server)
 ssh root@65.21.146.43 "cd /root/poly_arbitrage && nohup npx tsx --no-cache src/run-dca-mm-simulation.ts > dca_sim.log 2>&1 &"
 
 # View logs

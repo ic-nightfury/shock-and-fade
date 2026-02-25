@@ -455,7 +455,7 @@ for each parameter combination:
 
 #### Steps:
 1. Update `TwoLevelASS_Simulation.ts` with winning parameters
-2. Deploy to Finland server
+2. Deploy to production server
 3. Run for **10 consecutive full 15-minute windows** (~2.5 hours)
 4. Compare results to backtest prediction
 

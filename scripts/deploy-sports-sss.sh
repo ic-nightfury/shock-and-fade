@@ -1,6 +1,6 @@
 #!/bin/bash
-# Deploy Sports Split-Sell Strategy to Finland Server (US-400)
-# Server: 65.21.146.43 (Finland - Live Trading)
+# Deploy Sports Split-Sell Strategy to Production Server
+# Configure SERVER variable below with your server IP
 #
 # Usage:
 #   ./deploy-sports-sss.sh [--start]
@@ -12,7 +12,7 @@
 
 set -e
 
-SERVER="65.21.146.43"
+SERVER="${DEPLOY_SERVER:-your-server-ip}"  # Set DEPLOY_SERVER env var or edit this line
 REMOTE_DIR="/root/poly_arbitrage"
 SERVICE_NAME="polymarket-sports-sss"
 LOCAL_DIR="$(dirname "$0")/../.."

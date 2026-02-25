@@ -30,7 +30,7 @@ Shock & Fade runs as a distributed system across two servers with four main comp
 └─────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────┐
-│              Finland Server                          │
+│              Production Server                          │
 │                                                     │
 │  ┌──────────────────────┐                            │
 │  │  shock-fade-live      │  ◄── Real money trading  │
@@ -236,17 +236,17 @@ MemoryMax=512M
 
 ### shock-fade-live.service
 
-Runs on the **Finland server** (`/root/shock-and-fade/`). Live trading with real money. Defaults to dry-run mode.
+Runs on the **production server** (`/root/shock-and-fade/`). Live trading with real money. Defaults to dry-run mode.
 
-**Deployment:** Deploy via rsync (no git SSH key on Finland server):
+**Deployment:** Deploy via rsync (no git SSH key on production server):
 ```bash
-rsync -avz --exclude node_modules --exclude data --exclude .git . root@65.21.146.43:/root/shock-and-fade/
-ssh root@65.21.146.43 "systemctl restart shock-fade-live"
+rsync -avz --exclude node_modules --exclude data --exclude .git . root@YOUR_SERVER_IP:/root/shock-and-fade/
+ssh root@YOUR_SERVER_IP "systemctl restart shock-fade-live"
 # Or for config-only changes:
-ssh root@65.21.146.43 "systemctl reload shock-fade-live"
+ssh root@YOUR_SERVER_IP "systemctl reload shock-fade-live"
 ```
 
-**Dashboard:** Available on port **3033** on the Finland server.
+**Dashboard:** Available on port **3033** on the production server.
 
 ```ini
 [Service]

@@ -3,7 +3,7 @@
  * Entry point for Sports Tick Data Collector
  *
  * Collects real-time order book and trade data from live Polymarket sports markets.
- * Deploy to Helsinki server (65.108.219.235) for RQ-006/007 research.
+ * Deploy to your server (65.108.219.235) for RQ-006/007 research.
  *
  * Usage:
  *   npx tsx src/run-sports-tick-collector.ts [--data-dir /path]

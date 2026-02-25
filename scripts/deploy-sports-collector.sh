@@ -1,14 +1,14 @@
 #!/bin/bash
-# Deploy Sports Tick Collector to Helsinki Server
-# Server: 65.108.219.235
+# Deploy Sports Tick Collector to Your Server Server
+# Server: YOUR_SERVER_IP
 
 set -e
 
-SERVER="65.108.219.235"
+SERVER="${DEPLOY_SERVER:-your-server-ip}"  # Set DEPLOY_SERVER env var or edit this line
 REMOTE_DIR="/root/poly_arbitrage"
 SERVICE_NAME="polymarket-sports-collector"
 
-echo "=== Deploying Sports Tick Collector to Helsinki ($SERVER) ==="
+echo "=== Deploying Sports Tick Collector to Your Server ($SERVER) ==="
 
 # Step 1: Sync code to server (excluding unnecessary files)
 echo "Step 1: Syncing code to server..."

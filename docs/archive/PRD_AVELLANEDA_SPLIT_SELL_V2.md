@@ -350,7 +350,7 @@ Based on Phase 0 research, tune these parameters:
 
 **Acceptance Criteria:**
 - Update `TwoLevelASS_Simulation.ts` (or create V2) with optimal params
-- Deploy to Finland server
+- Deploy to production server
 - Run for 10 consecutive full 15-minute windows
 - Monitor via Dashboard V2
 
