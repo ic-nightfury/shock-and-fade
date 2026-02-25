@@ -1,0 +1,308 @@
+{
+  "project": "Sports Split-Sell Strategy (SSS)",
+  "branchName": "ralph/sports-split-sell",
+  "description": "Split-and-hold strategy for Polymarket sports markets. Core thesis: Split early when price is 50:50, sell the losing side while it still has value, hold the winning side to $1 settlement. Uses pure Polymarket price signals (no external score feeds).",
+  "references": [
+    {
+      "name": "API Data Sources Documentation",
+      "path": "references/API_DATA_SOURCES.md",
+      "description": "Complete documentation of all Polymarket APIs including Gamma API (market discovery), CLOB API (prices, orderbook), Data API (positions, activity, trades), and rate limits."
+    }
+  ],
+  "apiEndpoints": {
+    "gammaApi": {
+      "base": "https://gamma-api.polymarket.com",
+      "markets": "/markets - Fetch market metadata, tags, clobTokenIds",
+      "rateLimit": "300 requests per 10 seconds"
+    },
+    "clobApi": {
+      "base": "https://clob.polymarket.com",
+      "pricesHistory": "/prices-history - Historical price data by token ID",
+      "orderbook": "/orderbook - Real-time order book depth",
+      "rateLimit": "9000 requests per 10 seconds"
+    },
+    "dataApi": {
+      "base": "https://data-api.polymarket.com",
+      "positions": "/positions - Active positions for a wallet",
+      "activity": "/activity - TRADE, SPLIT, REDEEM, MERGE events",
+      "trades": "/trades - Recent trade activity",
+      "rateLimit": "150 requests per 10 seconds"
+    },
+    "websocket": {
+      "orderbook": "wss://ws-subscriptions-clob.polymarket.com/ws/market",
+      "user": "wss://ws-subscriptions-clob.polymarket.com/ws/user"
+    }
+  },
+  "userStories": [
+    {
+      "id": "RQ-001",
+      "title": "Research: Sports Market Discovery",
+      "description": "As a developer, I need to understand how to discover sports markets on Polymarket as fast as possible.",
+      "acceptanceCriteria": [
+        "Research Gamma API endpoints for market discovery (/markets, /events)",
+        "Identify how to filter for sports markets only (exclude e-sports, politics, crypto)",
+        "Determine market slug patterns for different sports (NFL, NBA, MLB, Soccer, Tennis, etc.)",
+        "Find the fastest way to detect NEW markets (polling interval, WebSocket availability)",
+        "Document market lifecycle: creation → active → closed → settled",
+        "Identify fields that indicate game start time (startDate, endDate, or similar)",
+        "Test API response times and rate limits for market discovery",
+        "Output: analysis/sss_market_discovery.md with API patterns and recommended approach"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "RQ-002",
+      "title": "Research: Optimal Entry Timing",
+      "description": "As a developer, I need to find the optimal time to split - as close to game start as possible while price is still ~50:50.",
+      "acceptanceCriteria": [
+        "Collect historical price data for 50+ sports markets across different sports",
+        "Analyze price distribution at different times relative to game start: -24h, -6h, -1h, -30m, -10m, -5m, at start",
+        "Calculate % of markets with price between 45c-55c at each time point",
+        "Identify if certain sports have more volatile pre-game pricing",
+        "Determine optimal entry window that maximizes 50:50 probability",
+        "Check if there's a 'last minute rush' effect that moves prices",
+        "Output: analysis/sss_entry_timing.md with recommended entry timing per sport category"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "RQ-003",
+      "title": "Research: Optimal Sell Threshold for Losing Side",
+      "description": "As a developer, I need to find the optimal price to sell the losing side - when reversal probability is low but price still has value.",
+      "acceptanceCriteria": [
+        "Collect historical price trajectories for 100+ settled sports markets",
+        "For markets that settled YES: track YES price over time, identify reversal patterns",
+        "For markets that settled NO: track NO price over time, identify reversal patterns",
+        "Calculate reversal probability at each price level (40c, 35c, 30c, 25c, 20c, 15c, 10c)",
+        "Reversal = side that dropped to Xc eventually won (settled at $1)",
+        "Find the 'sweet spot': price where reversal probability < 10% but price > 15c",
+        "Analyze if optimal threshold differs by sport (e.g., football vs tennis)",
+        "Consider game duration: longer games may have more reversals",
+        "Output: analysis/sss_sell_threshold.md with recommended sell price per sport"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "RQ-004",
+      "title": "Research: Optimal Stop Loss for Winning Side Reversal",
+      "description": "As a developer, I need to find the optimal stop loss price to cut losses when our 'winning' side reverses.",
+      "acceptanceCriteria": [
+        "Using same dataset as RQ-003, analyze winning side behavior",
+        "Track scenarios where winning side (held) drops back toward 50c or below",
+        "Calculate: if we held from 50c and price drops to Xc, what % eventually recovered to win?",
+        "Find stop loss threshold where recovery probability < 20%",
+        "Consider the asymmetry: we already sold losing side, so stop loss is to preserve remaining value",
+        "Calculate expected value at different stop loss levels",
+        "Output: analysis/sss_stop_loss.md with recommended stop loss strategy"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "RQ-005",
+      "title": "Research: Liquidity and Slippage Analysis",
+      "description": "As a developer, I need to understand liquidity in sports markets to size positions appropriately.",
+      "acceptanceCriteria": [
+        "Sample order books from 20+ active sports markets",
+        "Measure bid depth at best bid, bid-1c, bid-2c, bid-3c levels",
+        "Calculate estimated slippage for selling 10, 50, 100, 500 shares",
+        "Compare liquidity across sports categories (major leagues vs minor)",
+        "Compare liquidity at different game phases (pre-game, in-game, near end)",
+        "Identify minimum viable position size given typical liquidity",
+        "Identify maximum position size before slippage exceeds 5%",
+        "Output: analysis/sss_liquidity.md with position sizing recommendations"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "RQ-SUMMARY",
+      "title": "Research: Strategy Parameters Summary",
+      "description": "As a developer, I need consolidated findings from all research to define strategy parameters.",
+      "acceptanceCriteria": [
+        "All RQ-001 through RQ-005 must be completed first",
+        "Create analysis/sss_research_summary.md consolidating all findings",
+        "Define concrete strategy parameters based on research",
+        "Document expected ROI calculation with realistic assumptions",
+        "Identify risks and edge cases discovered",
+        "Provide go/no-go recommendation for implementation"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-100",
+      "title": "Core: Market Discovery Service",
+      "description": "As a trading bot, I need to discover and track active sports markets in real-time.",
+      "acceptanceCriteria": [
+        "PREREQUISITE: RQ-001 must be complete",
+        "Create src/services/SportsMarketDiscovery.ts",
+        "Poll Gamma API at optimal interval (from RQ-001 research)",
+        "Filter for sports markets only (exclude e-sports, politics, crypto)",
+        "Track market state: discovered, pending_entry, active, closed",
+        "Emit events: 'newMarket', 'marketStartingSoon', 'marketEnded'",
+        "Include game start time parsing and countdown",
+        "Rate limit compliant with Gamma API limits"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-101",
+      "title": "Core: Price Monitor WebSocket",
+      "description": "As a trading bot, I need to monitor real-time prices for all tracked markets.",
+      "acceptanceCriteria": [
+        "Create src/services/SportsPriceMonitor.ts",
+        "Connect to Polymarket WebSocket for price updates",
+        "Track YES/NO prices for each monitored market",
+        "Detect price threshold crossings (entry trigger, sell trigger, stop loss)",
+        "Emit events: 'priceUpdate', 'sellTrigger', 'stopLossTrigger'",
+        "Handle WebSocket reconnection gracefully",
+        "Support monitoring 50+ markets concurrently"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-102",
+      "title": "Core: Position Manager",
+      "description": "As a trading bot, I need to track positions across multiple concurrent games.",
+      "acceptanceCriteria": [
+        "Create src/services/SportsPositionManager.ts",
+        "Track position state: pending_split, holding, partial_sold, fully_sold, settled",
+        "Store: market, entry_time, split_cost, yes_shares, no_shares, sold_revenue",
+        "Support up to 50 concurrent positions",
+        "Calculate real-time P&L per position and total",
+        "Persist positions to file for crash recovery",
+        "Handle position cleanup after settlement"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-200",
+      "title": "Strategy: Entry Logic",
+      "description": "As a trading bot, I need to execute SPLIT at optimal entry timing.",
+      "acceptanceCriteria": [
+        "PREREQUISITE: RQ-002 must be complete, US-100/101/102 implemented",
+        "Create src/strategies/SportsSplitSell.ts",
+        "Monitor markets approaching game start time",
+        "Check price is within acceptable range (e.g., 45c-55c) before split",
+        "Execute SPLIT using SplitClient",
+        "Handle split failures gracefully (retry, skip)",
+        "Log entry with timestamp, market, prices, shares"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-201",
+      "title": "Strategy: Sell Losing Side Logic",
+      "description": "As a trading bot, I need to sell the losing side when price drops to threshold.",
+      "acceptanceCriteria": [
+        "PREREQUISITE: RQ-003 must be complete",
+        "Monitor price of both sides after entry",
+        "When one side drops below sell threshold (from research), mark as 'losing'",
+        "Execute market sell order for losing side shares",
+        "Track revenue from sale",
+        "Handle partial fills (retry remainder)",
+        "Do NOT sell if price drops below minimum viable (e.g., 5c)"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-202",
+      "title": "Strategy: Stop Loss Logic",
+      "description": "As a trading bot, I need to cut losses when winning side reverses.",
+      "acceptanceCriteria": [
+        "PREREQUISITE: RQ-004 must be complete",
+        "After selling losing side, monitor winning side price",
+        "If winning side drops below stop loss threshold, trigger exit",
+        "Execute market sell for remaining winning side shares",
+        "Log the reversal and loss amount",
+        "Position enters 'closed_loss' state"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-203",
+      "title": "Strategy: Settlement and Redemption",
+      "description": "As a trading bot, I need to handle settlement and redeem winning positions.",
+      "acceptanceCriteria": [
+        "Detect when market is settled (via API or price going to 0/100)",
+        "If holding winning tokens, trigger redemption",
+        "If game exceeds 24 hours and price > 99c, sell instead of waiting",
+        "Run redemption check every 1 hour for all positions",
+        "Update position state to 'settled' with final P&L",
+        "Handle edge case: market voided/cancelled"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-300",
+      "title": "Simulation: Paper Trading Mode",
+      "description": "As a developer, I need to test the strategy with simulated trades before going live.",
+      "acceptanceCriteria": [
+        "Create src/strategies/SportsSplitSell_Simulation.ts",
+        "Use real price feeds but simulate order execution",
+        "Track simulated positions and P&L",
+        "Output detailed logs for each decision point",
+        "Run for minimum 20 games across different sports",
+        "Compare results to theoretical expectations from research"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-400",
+      "title": "Live: Production Deployment",
+      "description": "As a developer, I need to deploy the strategy for live trading.",
+      "acceptanceCriteria": [
+        "PREREQUISITE: US-300 simulation shows positive expectation",
+        "Create src/run-sports-split-sell.ts entry point",
+        "Start with minimum position size ($1 per game)",
+        "Implement position sizing based on AUM % (configurable)",
+        "Create systemd service for continuous operation",
+        "Dashboard integration for monitoring",
+        "Alert on unusual losses or errors"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-401",
+      "title": "Live: Scaling and Optimization",
+      "description": "As a developer, I need to scale position sizes based on proven performance.",
+      "acceptanceCriteria": [
+        "After 50+ successful positions, analyze actual vs expected P&L",
+        "Adjust parameters based on live data (sell threshold, stop loss)",
+        "Increase position sizing gradually (1% AUM → 2% → 5%)",
+        "Document lessons learned and parameter refinements"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

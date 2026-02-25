@@ -1,0 +1,22 @@
+[Unit]
+Description=Polymarket Sports Split-Sell Strategy (SSS) Live Trading
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/poly_arbitrage
+# Default: $10 per game, dashboard enabled
+# Modify --bet-size as needed (minimum $1, maximum depends on sport-specific limits)
+ExecStart=/usr/bin/npx tsx src/run-sports-split-sell.ts --bet-size 10 --dashboard
+Restart=always
+RestartSec=30
+StandardOutput=append:/root/poly_arbitrage/logs/sss_live.log
+StandardError=append:/root/poly_arbitrage/logs/sss_live_error.log
+Environment=NODE_ENV=production
+
+# Load environment variables from .env file
+EnvironmentFile=/root/poly_arbitrage/.env
+
+[Install]
+WantedBy=multi-user.target

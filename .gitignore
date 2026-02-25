@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+2025-12-12.jsonl
+# Environment variables
+.env
+.env.local
+.env.*.local
+go.sh
+simui.sh
+# Database
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+dashboard/data/*.db
+dashboard/data/*.db-journal
+dashboard/data/*.db-wal
+dashboard/data/*.db-shm
+
+# Reference project (cloned repo)
+poly-15-mins-trade/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Runtime
+*.pid
+*.seed
+
+# TypeScript cache
+*.tsbuildinfo
+
+# NPM
+npm-debug.log*
+package-lock.json
+
+# Misc
+*.bak
+*.tmp
+
+current_task.md
+
+# Large data files
+crawler/tickchart*.jsonl
+crawler/*.jsonltick_data_cache/

@@ -1,0 +1,17 @@
+[Unit]
+Description=Polymarket Sports Tick Data Collector
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/poly_arbitrage
+ExecStart=/usr/bin/npx tsx src/run-sports-tick-collector.ts --data-dir /root/poly_arbitrage/sports_tick_data
+Restart=always
+RestartSec=10
+StandardOutput=append:/root/poly_arbitrage/sports_tick_data/logs/service.log
+StandardError=append:/root/poly_arbitrage/sports_tick_data/logs/service_error.log
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

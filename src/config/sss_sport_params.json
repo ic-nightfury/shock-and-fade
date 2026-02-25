@@ -1,0 +1,382 @@
+{
+  "strategy": "SSS",
+  "version": "1.0",
+  "generated_at": "2026-02-03",
+  "description": "Sports Split-Sell strategy parameters derived from RQ-001 through RQ-008 research",
+  "global_defaults": {
+    "min_entry_price": 0.4,
+    "max_entry_price": 0.6,
+    "min_sell_price": 0.05,
+    "stop_loss": null,
+    "entry_window_minutes": 10,
+    "order_type": "MARKET",
+    "max_concurrent_positions": 20,
+    "max_loss_per_window": 20,
+    "balance_reconciliation_interval_ms": 60000,
+    "market_discovery_interval_ms": 300000,
+    "settlement_check_interval_ms": 600000
+  },
+  "enabled_sports": [
+    "NHL",
+    "NFL",
+    "NBA",
+    "CBB"
+  ],
+  "sports": {
+    "NHL": {
+      "enabled": true,
+      "priority": 1,
+      "sell_threshold": 0.25,
+      "reversal_rate_at_threshold": 0.091,
+      "expected_ev_per_dollar": 0.159,
+      "min_volume_24h": 50000,
+      "min_bet_size": 5,
+      "max_bet_size": 100,
+      "feasibility_tier": "TIER1",
+      "confidence_level": "HIGH",
+      "games_per_day_estimate": [
+        5,
+        10
+      ],
+      "balanced_games_pct": 0.5,
+      "daily_opportunities_estimate": [
+        3,
+        5
+      ],
+      "season": {
+        "start_month": 10,
+        "end_month": 6,
+        "notes": "October to June (regular season + playoffs)"
+      },
+      "data_source": {
+        "historical_markets_analyzed": 100,
+        "tick_data_tier": "TIER1",
+        "slippage_at_100": 0.0002
+      },
+      "winner_drop_stats": {
+        "pct_below_50c": 0.63,
+        "pct_below_40c": 0.39,
+        "pct_below_30c": 0.22,
+        "deepest_winner_drop": 0.095
+      },
+      "notes": "BEST sport for SSS - highest EV, reasonable threshold, excellent liquidity"
+    },
+    "NFL": {
+      "enabled": true,
+      "priority": 2,
+      "sell_threshold": 0.2,
+      "reversal_rate_at_threshold": 0.057,
+      "expected_ev_per_dollar": 0.143,
+      "min_volume_24h": 100000,
+      "min_bet_size": 5,
+      "max_bet_size": 100,
+      "feasibility_tier": "TIER1",
+      "confidence_level": "HIGH",
+      "games_per_day_estimate": [
+        0,
+        16
+      ],
+      "balanced_games_pct": 0.35,
+      "daily_opportunities_estimate": [
+        0,
+        6
+      ],
+      "season": {
+        "start_month": 9,
+        "end_month": 2,
+        "notes": "September to February (regular season + playoffs + Super Bowl)"
+      },
+      "data_source": {
+        "historical_markets_analyzed": 100,
+        "tick_data_tier": "TIER1",
+        "slippage_at_100": 0.0
+      },
+      "winner_drop_stats": {
+        "pct_below_50c": 0.45,
+        "pct_below_40c": 0.33,
+        "pct_below_30c": 0.15,
+        "deepest_winner_drop": 0.15
+      },
+      "notes": "LOWEST reversal rate (5.7% at 20c), but SEASONAL - no games Feb-Aug"
+    },
+    "NBA": {
+      "enabled": true,
+      "priority": 3,
+      "sell_threshold": 0.15,
+      "reversal_rate_at_threshold": 0.099,
+      "expected_ev_per_dollar": 0.051,
+      "min_volume_24h": 50000,
+      "min_bet_size": 5,
+      "max_bet_size": 100,
+      "feasibility_tier": "TIER1",
+      "confidence_level": "HIGH",
+      "games_per_day_estimate": [
+        8,
+        12
+      ],
+      "balanced_games_pct": 0.3,
+      "daily_opportunities_estimate": [
+        2,
+        4
+      ],
+      "season": {
+        "start_month": 10,
+        "end_month": 6,
+        "notes": "October to June (regular season + playoffs)"
+      },
+      "data_source": {
+        "historical_markets_analyzed": 100,
+        "tick_data_tier": "TIER1",
+        "slippage_at_100": 0.0
+      },
+      "winner_drop_stats": {
+        "pct_below_50c": 0.58,
+        "pct_below_40c": 0.42,
+        "pct_below_30c": 0.27,
+        "deepest_winner_drop": 0.015
+      },
+      "notes": "LOWEST EV due to high reversal risk - consider skipping in favor of NHL"
+    },
+    "MLB": {
+      "enabled": false,
+      "priority": 99,
+      "sell_threshold": 0.2,
+      "reversal_rate_at_threshold": 0.099,
+      "expected_ev_per_dollar": 0.101,
+      "min_volume_24h": 50000,
+      "min_bet_size": 5,
+      "max_bet_size": 10,
+      "feasibility_tier": "UNVALIDATED",
+      "confidence_level": "HIGH",
+      "games_per_day_estimate": [
+        10,
+        15
+      ],
+      "balanced_games_pct": 0.25,
+      "daily_opportunities_estimate": [
+        2,
+        4
+      ],
+      "season": {
+        "start_month": 4,
+        "end_month": 10,
+        "notes": "April to October (OFF-SEASON NOW)"
+      },
+      "data_source": {
+        "historical_markets_analyzed": 100,
+        "tick_data_tier": "UNVALIDATED",
+        "slippage_at_100": null
+      },
+      "winner_drop_stats": {
+        "pct_below_50c": 0.73,
+        "pct_below_40c": 0.42,
+        "pct_below_30c": 0.26,
+        "deepest_winner_drop": 0.04
+      },
+      "notes": "DISABLED - OFF-SEASON and no tick data validation. Re-enable in April 2026."
+    },
+    "SOCCER": {
+      "enabled": false,
+      "priority": 4,
+      "sell_threshold": 0.3,
+      "reversal_rate_at_threshold": 0.12,
+      "expected_ev_per_dollar": 0.16,
+      "min_volume_24h": 50000,
+      "min_bet_size": 5,
+      "max_bet_size": 100,
+      "feasibility_tier": "CONDITIONAL_GO",
+      "confidence_level": "MEDIUM",
+      "games_per_day_estimate": [
+        10,
+        30
+      ],
+      "balanced_games_pct": 0.25,
+      "daily_opportunities_estimate": [
+        3,
+        8
+      ],
+      "season": {
+        "start_month": 1,
+        "end_month": 12,
+        "notes": "Year-round - EPL Aug-May, UCL Sep-Jun, multiple overlapping leagues"
+      },
+      "data_source": {
+        "historical_markets_analyzed": 500,
+        "tick_data_tier": "UNVALIDATED",
+        "slippage_at_100": null,
+        "price_history_unavailable": true,
+        "requires_tick_collection": true
+      },
+      "leagues": {
+        "EPL": {
+          "prefix": "epl",
+          "name": "English Premier League",
+          "status": "CONDITIONAL_GO",
+          "avg_volume": 15616560,
+          "markets_analyzed": 54
+        },
+        "UCL": {
+          "prefix": "ucl",
+          "name": "UEFA Champions League",
+          "status": "CONDITIONAL_GO",
+          "avg_volume": 7510276,
+          "markets_analyzed": 135
+        },
+        "LA_LIGA": {
+          "prefix": "lal",
+          "name": "La Liga (Spain)",
+          "status": "NEEDS_MORE_DATA",
+          "avg_volume": 39774405,
+          "markets_analyzed": 7
+        },
+        "BUNDESLIGA": {
+          "prefix": "bun",
+          "name": "Bundesliga (Germany)",
+          "status": "NEEDS_MORE_DATA",
+          "avg_volume": 2464468,
+          "markets_analyzed": 5
+        },
+        "UEL": {
+          "prefix": "uel",
+          "name": "UEFA Europa League",
+          "status": "NO_GO",
+          "avg_volume": 204752,
+          "markets_analyzed": 102,
+          "notes": "Below $50K threshold"
+        },
+        "SERIE_A": {
+          "prefix": "sea",
+          "name": "Serie A (Italy)",
+          "status": "NO_GO",
+          "avg_volume": 16475,
+          "markets_analyzed": 2
+        }
+      },
+      "market_structure": {
+        "type": "3-way",
+        "markets_per_event": 3,
+        "draw_rate": 0.21,
+        "handling": "Trade 'Will X Win?' markets as binary (draw = NO wins)"
+      },
+      "winner_drop_stats": {
+        "pct_below_50c": 0.34,
+        "pct_below_40c": 0.18,
+        "pct_below_30c": 0.13,
+        "deepest_winner_drop": 0.06,
+        "note": "From limited 38 market analysis - pending tick validation"
+      },
+      "notes": "CONDITIONAL GO - US-700 analysis shows excellent volume ($7-15M avg/game for EPL/UCL), but requires tick data collection to validate reversal rates. Enable after 2 weeks of tick data."
+    },
+    "TENNIS": {
+      "enabled": false,
+      "priority": 99,
+      "sell_threshold": 0.2,
+      "reversal_rate_at_threshold": 0.091,
+      "expected_ev_per_dollar": 0.109,
+      "min_volume_24h": 20000,
+      "min_bet_size": 5,
+      "max_bet_size": 10,
+      "feasibility_tier": "UNVALIDATED",
+      "confidence_level": "LOW",
+      "games_per_day_estimate": [
+        10,
+        30
+      ],
+      "balanced_games_pct": 0.4,
+      "daily_opportunities_estimate": [
+        4,
+        12
+      ],
+      "season": {
+        "start_month": 1,
+        "end_month": 12,
+        "notes": "Year-round tournaments"
+      },
+      "data_source": {
+        "historical_markets_analyzed": 30,
+        "tick_data_tier": "UNVALIDATED",
+        "slippage_at_100": null
+      },
+      "notes": "DISABLED - LOW confidence (only 30 markets analyzed), no tick data. Needs more research."
+    },
+    "CBB": {
+      "enabled": true,
+      "priority": 4,
+      "sell_threshold": 0.15,
+      "reversal_rate_at_threshold": 0.099,
+      "expected_ev_per_dollar": 0.051,
+      "min_volume_24h": 5000,
+      "min_bet_size": 5,
+      "max_bet_size": 50,
+      "feasibility_tier": "TIER2",
+      "confidence_level": "LOW",
+      "games_per_day_estimate": [
+        30,
+        50
+      ],
+      "balanced_games_pct": 0.15,
+      "daily_opportunities_estimate": [
+        5,
+        8
+      ],
+      "season": {
+        "start_month": 11,
+        "end_month": 4,
+        "notes": "November to April"
+      },
+      "data_source": {
+        "historical_markets_analyzed": 0,
+        "tick_data_tier": "EXCLUDED",
+        "slippage_at_100": null
+      },
+      "notes": "EXCLUDED - No order book data in tick collection, insufficient liquidity"
+    },
+    "ESPORTS": {
+      "enabled": false,
+      "priority": 99,
+      "sell_threshold": null,
+      "reversal_rate_at_threshold": null,
+      "expected_ev_per_dollar": null,
+      "min_volume_24h": null,
+      "min_bet_size": 0,
+      "max_bet_size": 0,
+      "feasibility_tier": "EXCLUDED",
+      "confidence_level": "NONE",
+      "notes": "EXCLUDED - Not analyzed, unpredictable liquidity ($0-$276k), unreliable patterns"
+    }
+  },
+  "market_filtering": {
+    "market_type": "moneyline",
+    "exclude_spread": true,
+    "exclude_totals": true,
+    "exclude_props": true,
+    "slug_pattern": "^[a-z]+-[a-z]+-[a-z]+-\\d{4}-\\d{2}-\\d{2}$",
+    "require_two_outcomes": true
+  },
+  "risk_management": {
+    "max_single_position_pct_of_aum": 0.05,
+    "max_daily_loss_pct_of_aum": 0.1,
+    "circuit_breaker_loss_threshold": 100,
+    "min_balance_to_trade": 50
+  },
+  "api_rate_limits": {
+    "gamma_api": {
+      "requests_per_10s": 300,
+      "safe_limit": 240
+    },
+    "clob_api": {
+      "requests_per_10s": 9000,
+      "safe_limit": 7200
+    },
+    "data_api": {
+      "requests_per_10s": 150,
+      "safe_limit": 120
+    }
+  },
+  "deployment": {
+    "paper_trading_port": 3031,
+    "live_trading_port": 3030,
+    "helsinki_server": "65.108.219.235",
+    "finland_server": "65.21.146.43"
+  }
+}

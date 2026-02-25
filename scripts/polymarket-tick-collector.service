@@ -1,0 +1,25 @@
+[Unit]
+Description=Polymarket Tick Data Collector (TypeScript)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/poly_arbitrage
+ExecStart=/root/.nvm/versions/node/v20.12.0/bin/npx tsx src/tick-collector.ts --asset BTC --data-dir /mnt/HC_Volume_102468263/polymarket_ticks
+Restart=always
+RestartSec=10
+
+# Environment
+Environment=NODE_ENV=production
+
+# Logging
+StandardOutput=append:/mnt/HC_Volume_102468263/polymarket_ticks/logs/service.log
+StandardError=append:/mnt/HC_Volume_102468263/polymarket_ticks/logs/service_error.log
+
+# Resource limits
+MemoryLimit=512M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target

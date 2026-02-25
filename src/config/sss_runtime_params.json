@@ -1,0 +1,77 @@
+{
+  "description": "Runtime parameters that can be adjusted without restart (US-401)",
+  "generated_at": "2026-02-03",
+  "version": "1.0",
+
+  "scaling": {
+    "enabled": false,
+    "currentAum": 1000,
+    "useAumBasedSizing": false,
+    "requireManualUpgrade": true,
+    "tiers": [
+      {
+        "tierName": "STARTER",
+        "minPositions": 0,
+        "minWinRate": 0,
+        "positionSizePct": 0.01,
+        "maxPositionSize": 10
+      },
+      {
+        "tierName": "CONSERVATIVE",
+        "minPositions": 50,
+        "minWinRate": 0.80,
+        "positionSizePct": 0.02,
+        "maxPositionSize": 50
+      },
+      {
+        "tierName": "MODERATE",
+        "minPositions": 100,
+        "minWinRate": 0.85,
+        "positionSizePct": 0.03,
+        "maxPositionSize": 75
+      },
+      {
+        "tierName": "AGGRESSIVE",
+        "minPositions": 200,
+        "minWinRate": 0.85,
+        "positionSizePct": 0.05,
+        "maxPositionSize": 100
+      }
+    ]
+  },
+
+  "parameter_overrides": {
+    "enabled": false,
+    "comment": "These override sss_sport_params.json values when enabled",
+    "sports": {
+      "NHL": {
+        "sell_threshold": null,
+        "min_bet_size": null,
+        "max_bet_size": null
+      },
+      "NFL": {
+        "sell_threshold": null,
+        "min_bet_size": null,
+        "max_bet_size": null
+      },
+      "NBA": {
+        "sell_threshold": null,
+        "min_bet_size": null,
+        "max_bet_size": null
+      }
+    }
+  },
+
+  "lessons_learned": {
+    "last_updated": null,
+    "entries": []
+  },
+
+  "notes": [
+    "This file can be edited while the strategy is running",
+    "Strategy will reload this file periodically (every 5 minutes)",
+    "Set enabled=true in parameter_overrides to apply changes",
+    "Set enabled=true in scaling to use AUM-based position sizing",
+    "Run performance analyzer to get recommended parameter adjustments"
+  ]
+}
