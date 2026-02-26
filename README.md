@@ -40,7 +40,7 @@ Using actual recorded trade data with 25% queue capture assumption:
 
 | Metric | Value |
 |--------|-------|
-| ROI | 11% ($107 profit on ~$1,000 capital) |
+| ROI | 11% in one afternoon ($107 profit on ~$1,000 capital) |
 | Games traded | 18 |
 | Win rate | 73.3% |
 | Sharpe ratio | 0.55 |
