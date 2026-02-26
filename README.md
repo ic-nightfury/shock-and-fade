@@ -24,6 +24,16 @@ Detects mid-game price shocks (>2σ moves) caused by scoring events, classifies 
 
 **Event-driven exit** is the key differentiator: only exit on adverse events (shock team scores again), hold on favorable events (opposite team scores). With this approach, **100% of parameter combinations are profitable** in backtesting — vs 15% with static timeout exits.
 
+## Dashboard Preview
+
+**Paper Trading Dashboard** — Monitor live games, shock detection, positions, and P&L in real-time:
+
+![Live Games & Positions](docs/images/dashboard-live-games.jpg)
+*Real-time monitoring: 39 live games, 18/18 trades profitable (+$27 P&L, 100% win rate)*
+
+![Trade History & Session Log](docs/images/dashboard-trade-history.jpg)
+*Detailed cycle tracking: OKC @ DET earned +$4.50 (3 trades, 3 wins, 0 holds), SAS @ TOR +$4.50*
+
 ## Backtest Results (v3 Realistic)
 
 Using actual recorded trade data with 25% queue capture assumption:
