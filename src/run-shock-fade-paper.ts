@@ -137,8 +137,8 @@ class GameEventConfirmation {
     this.pollTimer = setInterval(() => this.pollAll(), 10000);
     // Fast 1s polling for active markets (shock pending or position open)
     this.fastPollTimer = setInterval(() => this.pollActiveMarkets(), 1000);
-    // Score polling every 15s
-    this.scoreTimer = setInterval(() => this.pollScores(), 15000);
+    // Score polling every 1s (critical for detecting rapid NBA score changes)
+    this.scoreTimer = setInterval(() => this.pollScores(), 1000);
     this.pollScores(); // immediate first poll
     this.log("Started (10s idle / 1s active adaptive polling)");
   }

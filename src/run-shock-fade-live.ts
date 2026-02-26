@@ -160,8 +160,8 @@ class GameEventConfirmation {
   start(): void {
     this.pollTimer = setInterval(() => this.pollAll(), 10000);
     this.fastPollTimer = setInterval(() => this.pollActiveMarkets(), 1000);
-    // Poll scores every 15s
-    this.scoreTimer = setInterval(() => this.pollScores(), 15000);
+    // Poll scores every 1s (critical for detecting rapid NBA score changes)
+    this.scoreTimer = setInterval(() => this.pollScores(), 1000);
     this.pollScores(); // immediate first poll
     this.log("Started (10s idle / 1s active adaptive polling)");
   }
