@@ -40,10 +40,13 @@ Using actual recorded trade data with 25% queue capture assumption:
 
 | Metric | Value |
 |--------|-------|
-| Best parameter combo P&L | $107 / 18 games |
+| ROI | 11% ($107 profit on ~$1,000 capital) |
+| Games traded | 18 |
 | Win rate | 73.3% |
 | Sharpe ratio | 0.55 |
 | Profitable param combos | 100% (event-driven exit) |
+
+*Capital: $300 per game cycle, ~3-4 concurrent games on average = ~$1,000 working capital*
 
 ## Supported Sports
 
