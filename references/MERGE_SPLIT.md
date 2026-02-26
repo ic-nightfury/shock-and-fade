@@ -11,21 +11,21 @@ Documentation for merging and splitting conditional token positions on Polymarke
 
 ## Why Merge?
 
-For bilateral arbitrage, **MERGE** is critical because:
+**MERGE** is critical for capital efficiency:
 
-1. **Immediate Exit**: Don't wait for market settlement (up to 15 mins)
-2. **Capital Efficiency**: Recycle capital to next market immediately
+1. **Immediate Exit**: Don't wait for market settlement (up to 15 mins for BTC markets, hours for sports)
+2. **Capital Efficiency**: Recycle capital to next opportunity immediately
 3. **Risk Reduction**: Locked profit is realized instantly
 4. **Gas-Free**: Uses Polymarket's Builder Relayer (same as REDEEM)
 
 ### When to Merge
 
 ```
-After LOCK is executed:
-  - Position is balanced (UP qty ≈ DOWN qty)
-  - Profit is guaranteed
-  - → MERGE the hedged portion to USDC
-  - → Capital available for next market
+When you hold balanced positions (Team A qty ≈ Team B qty):
+  - Profit is locked regardless of outcome
+  - → MERGE the balanced portion back to USDC
+  - → Capital available for next trade
+  - → No need to wait for game settlement
 ```
 
 ## Contract Addresses (Polygon Mainnet)
@@ -321,4 +321,4 @@ try {
 3. Capital recycled → Ready for next market
 4. No waiting for settlement!
 
-This is the key to **capital efficiency** in bilateral arbitrage - don't let capital sit idle waiting for settlement when profit is already locked.
+This is the key to **capital efficiency** in balanced position trading - don't let capital sit idle waiting for settlement when profit is already locked.
