@@ -1,394 +1,242 @@
 # Product Requirements Document (PRD)
-# Polymarket Arbitrage Strategy
+# Shock & Fade: Mean-Reversion Trading on Polymarket Sports Markets
 
 ## Executive Summary
 
-Market-neutral arbitrage trading bot for Polymarket's BTC 15-minute Up/Down binary prediction markets. Exploits the mathematical certainty that in binary markets, exactly one outcome pays $1.00 per share at settlement.
+Automated mean-reversion trading system for Polymarket sports moneyline markets. Detects mid-game price shocks caused by scoring events, classifies them using free league APIs, and captures the reversion by selling into the overshoot with laddered limit orders.
 
 **Win Condition:**
 ```
-min(qty_UP, qty_DOWN) > total_cost = GUARANTEED PROFIT
+Event-driven exit + split-and-sell model = 100% parameter robustness
+(vs 15% with static timeout exits)
 ```
 
 ---
 
 ## Problem Statement
 
-Binary prediction markets on Polymarket offer paired outcomes (e.g., "BTC Up" vs "BTC Down" in 15-minute intervals). When market inefficiencies allow acquiring both sides for less than $1.00 combined, guaranteed profit exists regardless of the actual outcome.
+Live sports betting markets on Polymarket exhibit predictable overreaction to scoring events. When a team scores during a game, the market price typically overshoots the "fair" adjustment by 2-5¢ before reverting.
 
 **Challenges:**
-1. Real-time price monitoring across both sides
-2. Balanced position accumulation
-3. Dynamic rebalancing when positions drift
-4. Optimal execution to minimize slippage
-5. Time pressure (15-minute market windows)
+1. **Detecting shocks in real-time** (z-score > 2σ on rolling window)
+2. **Classifying events** (single scoring event vs scoring run vs noise)
+3. **Timing the exit** (when to close the position)
+4. **Execution efficiency** (avoiding 3-second taker delay on sports markets)
+5. **Multi-sport coverage** (NBA, NFL, NHL, CBB with different event frequencies)
 
 ---
 
 ## Solution Overview
 
-An automated trading system with four operating modes:
+### Core Mechanism: Split-and-Sell
 
-| Mode | Trigger | Purpose |
-|------|---------|---------|
-| **NORMAL** | Default | Accumulate both sides with inventory-aware pricing |
-| **BALANCING** | Imbalance >= threshold | Rebalance using trigger-hedge mechanism |
-| **PAIR_IMPROVEMENT** | After BALANCING, if pair cost >= $1.00 | Recover cost by buying below averages |
-| **PROFIT_LOCK** | Can lock profit at current prices | Balance position to realize guaranteed profit |
+Binary sports markets on Polymarket guarantee that 1 share Team A + 1 share Team B = $1.00 at settlement. We exploit this by:
 
-**Priority:** PROFIT_LOCK > BALANCING > PAIR_IMPROVEMENT > NORMAL
+1. **Pre-split** USDC into complementary token pairs before games start
+2. **Detect shocks** via z-score on 60-second rolling mid-price window
+3. **Classify events** using free league APIs (NBA CDN, ESPN, NHL Stats)
+4. **Sell into overshoot** with laddered limit orders (maker orders = no delay)
+5. **Exit on next event** (event-driven, not time-based)
 
----
+### The Edge: Event-Driven Exit
 
-## Win Condition Deep Dive
+Static timeout exits (e.g., "close after 120 seconds") are arbitrary and fail 85% of the time. The market might still be dislocated, or might have moved further against us.
 
-### The Guarantee
+**Event-driven exits** (close only when the next scoring event occurs) achieve **100% parameter robustness**. The next scoring event creates a new price equilibrium that naturally ends the fade window.
 
-Binary markets guarantee exactly one outcome (UP or DOWN) wins, paying $1.00/share.
-
-```
-Example Position:
-  - 100 UP shares @ $0.52 avg = $52.00 cost
-  - 100 DOWN shares @ $0.43 avg = $43.00 cost
-  - Total cost: $95.00
-  - Hedged pairs: 100
-
-At Settlement:
-  - One side wins → receives $100.00
-  - Guaranteed profit: $100.00 - $95.00 = $5.00 (5.26% return)
-```
-
-### Win Condition Formula
-
-```
-Guaranteed Profit = min(qty_UP, qty_DOWN) - (cost_UP + cost_DOWN)
-
-Requirements:
-  1. min(qty_UP, qty_DOWN) > total_cost
-  2. Pair cost < $1.00
-```
+This is the entire alpha.
 
 ---
 
-## System Architecture
+## Technical Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     ARBITRAGE TRADING BOT                            │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────┐     │
-│  │                   STRATEGY LAYER                            │     │
-│  │              (ArbitrageStrategy.ts)                         │     │
-│  ├───────────────┬───────────────┬───────────────┬───────────┤     │
-│  │ NORMAL Mode   │ BALANCING     │ PAIR_IMPROVE  │ PROFIT_   │     │
-│  │ - Multi-level │ - MICRO       │ - Below-avg   │ LOCK      │     │
-│  │   bids        │   trigger-    │   buying      │ - Instant │     │
-│  │ - Inventory   │   hedge       │ - Cost        │   balance │     │
-│  │   skew        │ - Linear      │   recovery    │ - Merge   │     │
-│  │               │   scaling     │               │   pairs   │     │
-│  └───────────────┴───────────────┴───────────────┴───────────┘     │
-│                               │                                      │
-│  ┌────────────────────────────▼─────────────────────────────────┐   │
-│  │                    SERVICE LAYER                              │   │
-│  ├──────────────┬──────────────┬──────────────┬────────────────┤   │
-│  │Polymarket    │ OrderBookWS  │BalanceMonitor│ MergeClient    │   │
-│  │Client        │ (Prices)     │WS (USDC)     │ (Redemption)   │   │
-│  │(CLOB API)    │              │              │                │   │
-│  └──────────────┴──────────────┴──────────────┴────────────────┘   │
-│                               │                                      │
-│  ┌────────────────────────────▼─────────────────────────────────┐   │
-│  │                  PERSISTENCE LAYER                            │   │
-│  │                    (Database.ts)                              │   │
-│  │  - arbitrage_positions: qty, cost, profit tracking            │   │
-│  │  - arbitrage_trades: fill history                             │   │
-│  └───────────────────────────────────────────────────────────────┘   │
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
-```
+### 1. Shock Detection
 
----
-
-## Core Features
-
-### 1. NORMAL Mode (Accumulation)
-
-**Purpose:** Build balanced positions at favorable prices.
-
-**Logic:**
-- Place up to 3 orders per side at 1c intervals
-- Use inventory skew to adjust starting prices (Avellaneda-style)
-- Price-based size scaling: 1.1x per cent below average
-- Filter orders by `getMaxPriceForSide()` to maintain pair cost < $0.99
-
-**Example:**
-```
-UP avg: $0.55, DOWN avg: $0.40
-maxPrice(UP) = 0.99 - 0.40 - 0.01 = $0.58
-
-UP orders: $0.55, $0.54, $0.53 (below max)
-DOWN orders: $0.38, $0.37, $0.36
-```
-
-### 2. BALANCING Mode (MICRO Trigger-Hedge)
-
-**Purpose:** Rebalance imbalanced positions using passive triggers + hedges.
-
-**Trigger Conditions (ALL required):**
-1. Imbalance ratio >= dynamic threshold
-2. Absolute imbalance >= 110 shares
-3. Deficit side ask > $0.50
-
-**Execution Flow:**
-```
-1. CALCULATE: Determine deficit, X (dilution shares)
-2. PLACE TRIGGERS: Tiered bids at BID, BID-1c, BID-2c
-3. ON FILL: Place proportional hedge
-   - Phase 1 (catching up): Half hedge
-   - Phase 2 (balanced): Full hedge
-4. EXIT: When balanced or forced
-```
-
-**Linear Size Scaling (getLevelSize):**
-```
-Price    | Multiplier | Size (base=10)
----------|------------|---------------
-SOT      | 1.0x       | 10
-$0.60    | 1.67x      | 17
-$0.55    | 2.33x      | 24
-$0.50    | 3.0x       | 30
-```
-
-### 3. PAIR_IMPROVEMENT Mode
-
-**Purpose:** Recover cost when pair cost >= $1.00 after BALANCING.
-
-**Logic:**
-- Buy BOTH sides at prices BELOW their respective averages
-- Tighter spread than NORMAL (bid - 0.02)
-- 1.3x size scaling per cent below average
-
-### 4. PROFIT_LOCK Mode
-
-**Purpose:** Lock guaranteed profit when opportunity detected.
-
-**Trigger:**
+**Z-Score Calculation:**
 ```typescript
-newLockedPNL > lastLockedPNL && newLockedPNL > 0
+const zScore = (currentMid - rollingMean) / rollingStdDev;
+const isShock = Math.abs(zScore) > 2.0 && Math.abs(currentMid - prevMid) >= 0.03;
 ```
 
-**Execution:**
-1. Cancel all pending orders
-2. Buy deficit side at Ask+1c (aggressive)
-3. Wait for fill
-4. Merge hedged pairs via Builder Relayer
-5. Reset state for next opportunity
+**Parameters:**
+- Rolling window: 60 seconds
+- Z-score threshold: 2σ (2 standard deviations)
+- Absolute minimum: 3¢ move (filters low-volatility noise)
+
+### 2. Event Classification
+
+**10-Second Hard Cutoff:**
+After a shock is detected, poll the league API every 1 second for 10 seconds maximum.
+
+**Classification Logic:**
+```
+Single scoring event (1 basket, 1 goal)    → TRADE
+Scoring run (2+ events in 10s window)      → SKIP (momentum, not mean-reversion)
+No event detected within 10s               → SKIP (noise or data lag)
+```
+
+**API Sources:**
+- **NBA:** NBA CDN (free, real-time play-by-play)
+- **NFL:** ESPN API (free, 10-15s delay)
+- **NHL:** NHL Stats API (free, 5-10s delay)
+- **CBB:** ESPN API (free, similar to NFL)
+
+### 3. Ladder Entry (Maker Orders)
+
+Place 3 GTC limit sell orders on the spiked token:
+
+| Level | Price | Size | Fill Rate |
+|-------|-------|------|-----------|
+| 1 | Shock + 3¢ | 5 shares | ~80% |
+| 2 | Shock + 6¢ | 10 shares | ~40% |
+| 3 | Shock + 9¢ | 20 shares | ~10% |
+
+**Total exposure:** ~$35 per cycle
+
+**Why ladders?**
+- Capture different depths of overshoot
+- Avoid chasing the spike with market orders (3-second delay)
+- Maker orders execute instantly (no Polymarket sports delay)
+
+### 4. Exit Logic
+
+**Event-Driven Exit:**
+```
+If next event = FAVORABLE (opposite team scores):
+  → Hold position, wait for mean reversion
+  → GTC sell complement token at bid+1tick
+
+If next event = ADVERSE (same team scores again):
+  → Exit immediately via GTC at bid+1tick
+
+If game decided (bid ≤1¢ or ≥99¢):
+  → Finalize directly (no GTC needed)
+```
+
+**GTC-at-Bid Strategy:**
+Instead of FAK market orders (3-second delay), place GTC sell at `bid + 1 tick`. This executes as a maker order (~1 second fill) vs taker delay (3+ seconds).
 
 ---
 
-## Key Algorithms
+## Sport-Specific Tuning
 
-### Dynamic Imbalance Threshold
+### NBA
+- **Frequency:** ~200 scoring events per game
+- **Shock magnitude:** 3-8¢ typical
+- **Parameters:** 2σ, 3¢ min, 60s window
+- **Ladder:** +3¢/+6¢/+9¢
 
-Position size determines trigger sensitivity:
+### NFL
+- **Frequency:** 8-12 scoring events per game
+- **Shock magnitude:** 8-20¢+ (touchdowns are huge moves)
+- **Parameters:** 2σ, 4-5¢ min, 10min timeout
+- **Ladder:** +3¢/+5¢/+8¢ (wider spacing)
 
-| Total Shares | Threshold |
-|--------------|-----------|
-| 0-100 | 100% - 86% |
-| 100-500 | 86% - 30% |
-| 500-2000 | 30% - 5% |
-| 2000+ | 5% (floor) |
+### NHL
+- **Frequency:** ~6-8 scoring events per game
+- **Shock magnitude:** 5-12¢
+- **Parameters:** 2σ, 3-4¢ min, 5min timeout
+- **Ladder:** +3¢/+6¢/+10¢
 
-### Level Size Scaling (getLevelSize)
+### CBB (College Basketball)
+- **Frequency:** Similar to NBA (~150-200 events)
+- **Shock magnitude:** 2-6¢ (thinner books = smaller moves)
+- **Parameters:** 2σ, 2-3¢ min, 60s window
+- **Status:** Recording data, depth filter needed
 
-```typescript
-sizeMultiplier = 1 + 2 * (SOT - price) / (SOT - 0.50)
-// 1x at SOT → 3x at $0.50
-// NO max cap - sizes scale freely for faster rebalancing
-```
+---
 
-### Core Size Decay
+## Performance Metrics
 
-```typescript
-// Time decay: After M6, decrease 20% per minute
-if (minute >= 6) base *= Math.pow(0.8, minute - 6);
+### Backtest Results (18 NBA Games)
 
-// Profit-lock decay: 30% per successful lock
-if (profitLockCount > 0) base *= Math.pow(0.7, profitLockCount);
-```
+**Best Parameter Combination:**
+- Total P&L: $107
+- Win Rate: 73.3%
+- Sharpe Ratio: 0.55
+- Queue Capture: 25% (conservative assumption)
 
-### Dilution Formula (BALANCING)
+**Key Finding:**
+- **Event-driven exit:** 100% of parameter combinations profitable
+- **Static timeout exit:** Only 15% of parameter combinations profitable
+- **7x improvement** in strategy robustness
 
-```
-X = (TARGET_PAIR_COST × basePairs - totalCostAfterDeficit) /
-    (triggerPrice + hedgePrice - TARGET_PAIR_COST)
-```
+---
+
+## Risk Management
+
+### Position Sizing
+- Max exposure per cycle: $35 (ladder total)
+- Max concurrent cycles: 3 (per game)
+- Max exposure per game: ~$100
+- Bankroll requirement: $5,000 minimum (50x single-game exposure)
+
+### Stop-Loss
+- **Adverse event:** Exit at bid+1tick immediately
+- **Max drawdown per cycle:** ~$10 (rare, requires 2+ adverse events)
+- **Game decided:** Finalize positions, don't chase settled markets
+
+### Edge Degradation
+- Strategy assumes 2-5¢ overshoot remains predictable
+- If market efficiency increases → edge shrinks
+- Monitor: Avg reversion magnitude, fill rates, win rate
+- Kill switch: If win rate drops <60% over 20 cycles, pause
+
+---
+
+## Deployment Requirements
+
+### Infrastructure
+- **Server:** Low-latency VPS (Hetzner Finland recommended for EU Polymarket servers)
+- **WebSocket:** Stable connection to Polymarket price feeds
+- **APIs:** Free league APIs (NBA CDN, ESPN, NHL Stats)
+- **Database:** PostgreSQL for tick data, trade history, backtest results
+
+### API Keys
+- **Polymarket:** CLOB API key + private key (for order placement)
+- **League APIs:** No keys required (all free public endpoints)
+
+### Monitoring
+- **Dashboard:** Real-time price chart, shock detection, ladder fills, P&L
+- **Alerts:** Telegram notifications on fills, errors, adverse events
+- **Logs:** All shocks, classifications, entries, exits (for post-game analysis)
 
 ---
 
 ## Success Metrics
 
-### Primary
+### Phase 1: Live Paper Trading (2 weeks)
+- Target: 70%+ win rate across ≥10 games
+- Validation: Event-driven exit superiority confirmed
+- Benchmark: ≥$50 paper profit per week (simulated)
 
-| Metric | Target | Description |
-|--------|--------|-------------|
-| Win Rate | 100% | When profit is locked, outcome is guaranteed |
-| Profit per Lock | 1-5% | Depends on entry prices and balance quality |
-| Capital Efficiency | >80% | USDC utilization rate |
+### Phase 2: Live Trading (Small Capital)
+- Capital: $1,000 initial (20x single-game exposure)
+- Target: 65%+ win rate, Sharpe ≥0.4
+- Risk limit: Max -10% drawdown (pause if hit)
 
-### Secondary
-
-| Metric | Description |
-|--------|-------------|
-| Pair Cost | Average cost per hedged pair (target: < $0.99) |
-| Rebalance Success | % of BALANCING cycles that achieve balance |
-| Markets per Hour | 4 maximum (one every 15 minutes) |
-
----
-
-## Technical Requirements
-
-### Infrastructure
-
-- **Runtime:** Node.js with TypeScript
-- **Database:** SQLite for position persistence
-- **WebSocket:** Real-time price feeds
-
-### External APIs
-
-| API | Purpose |
-|-----|---------|
-| Gamma API | Market discovery |
-| CLOB API | Order placement/management |
-| WebSocket | Real-time prices |
-| Builder Relayer | Gas-free redemption |
-
-### Blockchain
-
-| Property | Value |
-|----------|-------|
-| Network | Polygon (137) |
-| Collateral | USDC.e |
-| Signature | POLY_GNOSIS_SAFE |
+### Phase 3: Scale-Up
+- Capital: $10,000+
+- Target: $500-1,000/month profit
+- Coverage: NBA + NFL + NHL (multi-sport diversification)
+- Monitoring: Automated kill switch if edge degrades
 
 ---
 
-## Configuration
+## Open Source Distribution
 
-### Environment Variables
+**Repository:** https://github.com/ic-nightfury/shock-and-fade  
+**License:** MIT (open source, free to use and modify)  
+**Documentation:** Full strategy docs, backtest data, setup guides  
+**Dashboard:** React + WebSocket real-time visualization
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `POLYMARKET_PRIVATE_KEY` | Yes | Wallet private key |
-| `POLYMARKET_FUNDER` | Yes | Gnosis Safe address |
-| `BUILDER_API_KEY` | Yes | Builder Relayer credentials |
-| `BUILDER_SECRET` | Yes | Builder Relayer credentials |
-| `BUILDER_PASS_PHRASE` | Yes | Builder Relayer credentials |
-
-### Strategy Parameters
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ARB_BASE_SIZE` | 5 | Base shares per trade |
-| `ARB_STOP_MINUTE` | 8 | Stop after this minute if profitable |
-| `ARB_MAX_CAPITAL_PCT` | 80% | Stop if capital usage exceeds |
-| `ARB_TARGET_PAIR_COST` | $0.98 | Target pair cost |
-
-### Hard-Coded Constants
-
-- MAX_CORE_SIZE = 32
-- PRICE_FLOOR = $0.05
-- TARGET_PAIR_COST (BALANCING) = $0.99
-- ABSOLUTE_IMBALANCE_THRESHOLD = 110 shares
+**Support:**
+- GitHub Issues for bugs/questions
+- Community updates via Telegram
+- No official support (use at your own risk)
 
 ---
 
-## Market Exit Conditions
-
-```
-1. MARKET DECIDED
-   - UP or DOWN bid <= $0.02 OR >= $0.98
-
-2. TIME + PROFIT
-   - Current minute >= stopMinute (default M8)
-   - AND isProfitable() = true
-
-3. CAPITAL + PROFIT
-   - Capital used >= maxCapitalPct (default 80%)
-   - AND isProfitable() = true
-```
-
----
-
-## Risk Factors & Mitigations
-
-| Risk | Mitigation |
-|------|------------|
-| API downtime | Position persistence in SQLite; graceful reconnection |
-| Extreme price moves | Price caps via getMaxPriceForSide() |
-| Execution slippage | IOC orders ensure known fill prices |
-| Position imbalance | BALANCING mode with multi-level triggers |
-| Late market exposure | Time decay on core size; stopMinute |
-
----
-
-## Commands
-
-```bash
-# Production
-npm run bot              # Run arbitrage strategy
-npm run start            # Run (production alias)
-
-# Simulation
-npm run arb:sim          # Paper trading with real prices
-
-# Utilities
-npm run aum              # Check AUM breakdown
-npm run rebase           # Redeem positions + update baseline
-npm run init-wallet      # First-time wallet setup
-```
-
----
-
-## File Structure
-
-```
-src/
-├── strategies/
-│   ├── ArbitrageStrategy.ts     # Production strategy
-│   └── ArbitrageSimulation.ts   # Simulation strategy
-├── services/
-│   ├── PolymarketClient.ts      # CLOB API wrapper
-│   ├── OrderBookWS.ts           # Price feeds
-│   ├── BalanceMonitorWS.ts      # Balance tracking
-│   ├── MergeClient.ts           # Token merging
-│   └── Database.ts              # SQLite persistence
-└── types/
-    └── index.ts                 # Type definitions
-
-docs/
-├── ARBITRAGE_STRATEGY.md        # Detailed strategy documentation
-└── references/                  # Formula derivations
-```
-
----
-
-## Key Functions Reference
-
-| Function | Purpose |
-|----------|---------|
-| `getMode()` | Determine current strategy mode |
-| `getDynamicImbalanceThreshold()` | Calculate BALANCING trigger |
-| `getCoreSize()` | Base order size with time/lock decay |
-| `getLevelSize()` | Linear scaling 1x→3x for BALANCING |
-| `getMaxPriceForSide()` | Price cap to keep pair cost < $0.99 |
-| `checkProfitLockOpportunity()` | Detect profit-lock trigger |
-| `calculateMicroBalancingParams()` | Calculate X, total sizes |
-| `updateMicroTriggerOrders()` | Place tiered trigger bids |
-| `handleMicroTriggerFill()` | Process fill with Phase 1/2 hedging |
-
----
-
-*Document Version: 2.0*
-*Strategy: V8 Bilateral Accumulation with MICRO Balancing*
-*Last Updated: 2026-01-16*
+**Author:** Barren Wuffet  
+**Created:** 2026-02-25  
+**Version:** 3.0
