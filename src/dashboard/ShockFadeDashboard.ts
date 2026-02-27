@@ -446,6 +446,12 @@ export class ShockFadeDashboardServer {
         continue; // Skip this market - no tradeable prices
       }
 
+      // FILTER: Skip markets with extreme prices (game decided, no trade value)
+      const hasExtremePrice = prices.some(p => p.bid >= 0.99 || p.bid <= 0.01);
+      if (hasExtremePrice) {
+        continue; // Skip decided games (99%+ or 1%- prices)
+      }
+
       // Determine game state
       let state = "upcoming";
       if (market.state === "active" || market.state === "pending_entry") {
