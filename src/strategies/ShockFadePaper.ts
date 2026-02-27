@@ -737,8 +737,15 @@ export class ShockFadePaperTrader extends EventEmitter {
    * If so, we sell the complement to close the position.
    */
   private checkTakeProfits(tokenId: string, bid: number, _ask: number): void {
+    const now = Date.now();
+    const MIN_HOLD_TIME_MS = 1500; // Realistic minimum hold time (order routing + market movement)
+    
     for (const pos of this.positions.values()) {
       if (pos.heldTokenId !== tokenId || pos.status !== "OPEN") continue;
+
+      // Prevent instant TP (unrealistic in real trading)
+      const holdTimeMs = now - pos.openTime;
+      if (holdTimeMs < MIN_HOLD_TIME_MS) continue;
 
       // We want to SELL the held token — fills when bid >= our TP price
       if (bid >= pos.takeProfitPrice) {
@@ -748,8 +755,15 @@ export class ShockFadePaperTrader extends EventEmitter {
   }
 
   private checkTakeProfitsAtPrice(tokenId: string, tradePrice: number): void {
+    const now = Date.now();
+    const MIN_HOLD_TIME_MS = 1500; // Realistic minimum hold time
+    
     for (const pos of this.positions.values()) {
       if (pos.heldTokenId !== tokenId || pos.status !== "OPEN") continue;
+
+      // Prevent instant TP
+      const holdTimeMs = now - pos.openTime;
+      if (holdTimeMs < MIN_HOLD_TIME_MS) continue;
 
       if (tradePrice >= pos.takeProfitPrice) {
         this.closePosition(pos, "TAKE_PROFIT");
