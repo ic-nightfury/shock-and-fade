@@ -735,17 +735,31 @@ export class ShockFadePaperTrader extends EventEmitter {
    * If so, we sell the complement to close the position.
    */
   /**
-   * Take profit fills ONLY when there's an actual trade at or above TP price.
-   * No instant fills - requires real market activity.
+   * Take profit AND stop loss on actual trades.
+   * TP: Trade at or above TP price → profit
+   * SL: Trade below break-even price → cut loss
    */
   private checkTakeProfitsAtPrice(tokenId: string, tradePrice: number): void {
+    const FILL_TOLERANCE = 0.005; // 0.5¢ tolerance
+    
     for (const pos of this.positions.values()) {
       if (pos.heldTokenId !== tokenId || pos.status !== "OPEN") continue;
 
-      // Fill if trade happens within 0.5¢ of our TP price
-      const FILL_TOLERANCE = 0.005; // 0.5¢ tolerance
+      // TAKE PROFIT: price faded back favorably
       if (Math.abs(tradePrice - pos.takeProfitPrice) <= FILL_TOLERANCE) {
         this.closePosition(pos, "TAKE_PROFIT");
+        continue;
+      }
+
+      // STOP LOSS: price moved against us (shock didn't fade, continued trending)
+      // Break-even price = 1.00 - soldPrice (complement must be >= this to break even)
+      // If shock continues, complement price drops below break-even → stop out
+      const breakEvenPrice = 1.0 - pos.soldPrice;
+      const stopLossPrice = breakEvenPrice - 0.03; // Stop 3¢ below break-even
+      
+      if (tradePrice <= stopLossPrice) {
+        this.log(`🛑 STOP LOSS: ${pos.id} — price moved against us (held token: ${(tradePrice * 100).toFixed(1)}¢ < SL ${(stopLossPrice * 100).toFixed(1)}¢)`);
+        this.closePosition(pos, "STOP_LOSS");
       }
     }
   }
