@@ -418,12 +418,24 @@ export class ShockFadeDashboardServer {
     for (const market of this.markets.values()) {
       const prices = market.tokenIds.map((tokenId) => {
         const p = this.trader?.getLatestPrice(tokenId);
-        const bid = p?.bid ?? 0;
-        const ask = p?.ask ?? 0;
+        let bid = p?.bid ?? 0;
+        let ask = p?.ask ?? 0;
+        let mid = p?.mid ?? 0;
+        
+        // Fallback: if trader doesn't have price yet, check WebSocket orderbook
+        if (bid === 0 && ask === 0 && (this.trader as any)?.ws) {
+          const book = (this.trader as any).ws.getOrderBook?.(tokenId);
+          if (book && book.bids.length > 0 && book.asks.length > 0) {
+            bid = book.bids[0][0];
+            ask = book.asks[0][0];
+            mid = (bid + ask) / 2;
+          }
+        }
+        
         return {
           bid,
           ask,
-          mid: p?.mid ?? 0,
+          mid,
           spread: ask > 0 && bid > 0 ? ask - bid : 0,
         };
       });
