@@ -31,10 +31,6 @@ export interface ShockEvent {
   currentPrice: number; // price at shock detection
   timestamp: number;
   classification?: ShockClassification;
-  getMarket(marketSlug: string): SportsMarket | undefined {
-    return this.markets.get(marketSlug);
-  }
-
 }
 
 export type ShockClassification =
@@ -54,20 +50,12 @@ export interface ShockFadeConfig {
   maxPositionSize: number; // default 100 (USDC per level)
   cooldownMs: number; // default 30000 (30s between shocks on same market)
   targetPriceRange: [number, number]; // default [0.07, 0.91]
-  getMarket(marketSlug: string): SportsMarket | undefined {
-    return this.markets.get(marketSlug);
-  }
-
 }
 
 /** Internal price tick stored in rolling window */
 interface PriceTick {
   mid: number;
   timestamp: number;
-  getMarket(marketSlug: string): SportsMarket | undefined {
-    return this.markets.get(marketSlug);
-  }
-
 }
 
 /** Per-token tracking state */
@@ -75,10 +63,6 @@ interface TokenState {
   ticks: PriceTick[];
   lastShockTs: number;
   marketSlug: string;
-  getMarket(marketSlug: string): SportsMarket | undefined {
-    return this.markets.get(marketSlug);
-  }
-
 }
 
 // ============================================================================
@@ -425,8 +409,4 @@ export class ShockFadeDetector extends EventEmitter {
     const ts = new Date().toISOString();
     console.log(`${ts} [INFO] ⚡ [ShockDetector] ${message}`);
   }
-  getMarket(marketSlug: string): SportsMarket | undefined {
-    return this.markets.get(marketSlug);
-  }
-
 }
