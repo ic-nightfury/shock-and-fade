@@ -623,15 +623,13 @@ export class ShockFadePaperTrader extends EventEmitter {
 
     this.latestPrices.set(tokenId, { bid, ask, mid });
 
-    // Check if any pending SELL orders would fill (bid reaches our limit)
-    this.checkOrderFills(tokenId, bid, ask);
-
-    // Check if any held tokens hit take-profit price (can sell the complement)
-    this.checkTakeProfits(tokenId, bid, ask);
+    // DON'T auto-fill on bid/ask updates - only on actual trades
+    // This is more realistic: orders fill when there's a transaction at that price
   }
 
   private handleTrade(event: TradeEvent): void {
     const { tokenId, tradePrice } = event;
+    // Only fill when there's an actual trade at our price level
     this.checkOrderFillsAtPrice(tokenId, tradePrice);
     this.checkTakeProfitsAtPrice(tokenId, tradePrice);
   }
@@ -736,36 +734,17 @@ export class ShockFadePaperTrader extends EventEmitter {
    * Check if the held token's market bid has reached our take-profit price.
    * If so, we sell the complement to close the position.
    */
-  private checkTakeProfits(tokenId: string, bid: number, _ask: number): void {
-    const now = Date.now();
-    const MIN_HOLD_TIME_MS = 1500; // Realistic minimum hold time (order routing + market movement)
-    
-    for (const pos of this.positions.values()) {
-      if (pos.heldTokenId !== tokenId || pos.status !== "OPEN") continue;
-
-      // Prevent instant TP (unrealistic in real trading)
-      const holdTimeMs = now - pos.openTime;
-      if (holdTimeMs < MIN_HOLD_TIME_MS) continue;
-
-      // We want to SELL the held token — fills when bid >= our TP price
-      if (bid >= pos.takeProfitPrice) {
-        this.closePosition(pos, "TAKE_PROFIT");
-      }
-    }
-  }
-
+  /**
+   * Take profit fills ONLY when there's an actual trade at or above TP price.
+   * No instant fills - requires real market activity.
+   */
   private checkTakeProfitsAtPrice(tokenId: string, tradePrice: number): void {
-    const now = Date.now();
-    const MIN_HOLD_TIME_MS = 1500; // Realistic minimum hold time
-    
     for (const pos of this.positions.values()) {
       if (pos.heldTokenId !== tokenId || pos.status !== "OPEN") continue;
 
-      // Prevent instant TP
-      const holdTimeMs = now - pos.openTime;
-      if (holdTimeMs < MIN_HOLD_TIME_MS) continue;
-
-      if (tradePrice >= pos.takeProfitPrice) {
+      // Fill if trade happens within 0.5¢ of our TP price
+      const FILL_TOLERANCE = 0.005; // 0.5¢ tolerance
+      if (Math.abs(tradePrice - pos.takeProfitPrice) <= FILL_TOLERANCE) {
         this.closePosition(pos, "TAKE_PROFIT");
       }
     }
