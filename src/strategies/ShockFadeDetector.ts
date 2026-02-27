@@ -405,6 +405,10 @@ export class ShockFadeDetector extends EventEmitter {
   // LOGGING
   // ============================================================================
 
+
+  getMarket(marketSlug: string): SportsMarket | undefined {
+    return this.markets.get(marketSlug);
+  }
   private log(message: string): void {
     const ts = new Date().toISOString();
     console.log(`${ts} [INFO] ⚡ [ShockDetector] ${message}`);
