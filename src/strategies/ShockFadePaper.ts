@@ -39,7 +39,7 @@ import {
 
 export type OrderSide = "SELL"; // Always sell in split-and-sell model
 export type OrderStatus = "PENDING" | "FILLED" | "CANCELLED" | "EXPIRED";
-export type PositionStatus = "OPEN" | "TAKE_PROFIT" | "HEDGED" | "CLOSED";
+export type PositionStatus = "OPEN" | "TAKE_PROFIT" | "STOP_LOSS" | "HEDGED" | "CLOSED";
 
 /** Which leg of the trade this order represents */
 export type OrderLeg = "ENTRY" | "EXIT";
