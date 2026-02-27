@@ -877,31 +877,112 @@ export class ShockFadePaperTrader extends EventEmitter {
    * Closes all open positions for that market (the fade is over, next event disrupts it).
    * Also cancels any unfilled pending orders for that market.
    */
-  handleGameEvent(marketSlug: string): void {
+  /**
+   * Handle game event with adverse/favorable distinction.
+   * 
+   * @param marketSlug - Which market had the event
+   * @param scoringTeam - Which team scored (optional - if not provided, exits all)
+   * @param marketOutcomes - Market outcomes array (e.g., ["Heat", "76ers"])
+   * @param tokenIds - Token IDs in same order as outcomes
+   * 
+   * Logic:
+   * - Adverse event (shock team scores again): EXIT immediately
+   * - Favorable event (opposite team scores): HOLD for mean reversion
+   */
+  handleGameEvent(
+    marketSlug: string,
+    scoringTeam?: string,
+    marketOutcomes?: string[],
+    tokenIds?: string[]
+  ): void {
     let closedCount = 0;
+    let heldCount = 0;
     let cancelledCount = 0;
 
-    // Close all open positions for this market
+    // If no team info provided, exit all positions (fallback behavior)
+    if (!scoringTeam || !marketOutcomes || !tokenIds) {
+      for (const pos of this.positions.values()) {
+        if (pos.marketSlug !== marketSlug || pos.status !== "OPEN") continue;
+        this.closePosition(pos, "EVENT_EXIT");
+        closedCount++;
+      }
+
+      for (const order of this.orders.values()) {
+        if (order.marketSlug !== marketSlug || order.status !== "PENDING") continue;
+        order.status = "CANCELLED";
+        this.stats.totalOrdersCancelled++;
+        this.returnShares(order.marketSlug, order.tokenId, order.shares);
+        const complement = this.getComplementToken(order.tokenId);
+        if (complement) this.returnShares(order.marketSlug, complement, order.shares);
+        cancelledCount++;
+      }
+
+      if (closedCount > 0) {
+        this.log(`🏟️ Event exit (no team info): ${marketSlug} — closed ${closedCount} positions`);
+      }
+      return;
+    }
+
+    // Determine which team we sold by mapping soldTokenId to outcome
     for (const pos of this.positions.values()) {
       if (pos.marketSlug !== marketSlug || pos.status !== "OPEN") continue;
-      this.closePosition(pos, "CLOSED"); // "CLOSED" = event-driven exit
-      closedCount++;
+
+      const soldTokenIndex = tokenIds.indexOf(pos.soldTokenId);
+      if (soldTokenIndex === -1) {
+        // Can't determine which team - exit as safety
+        this.log(`⚠️ Cannot map token ${pos.soldTokenId} to team — exiting position ${pos.id}`);
+        this.closePosition(pos, "EVENT_EXIT");
+        closedCount++;
+        continue;
+      }
+
+      const soldTeam = marketOutcomes[soldTokenIndex];
+      
+      // Normalize team names for matching (remove spaces, lowercase)
+      const normalizedSoldTeam = soldTeam.toLowerCase().replace(/\s+/g, '');
+      const normalizedScoringTeam = scoringTeam.toLowerCase().replace(/\s+/g, '');
+
+      // Check if scoring team matches sold team (adverse event)
+      const isAdverse = normalizedScoringTeam.includes(normalizedSoldTeam) || 
+                        normalizedSoldTeam.includes(normalizedScoringTeam);
+
+      if (isAdverse) {
+        // ADVERSE: shock team scored again → exit immediately
+        this.log(
+          `🔴 ADVERSE EVENT: ${scoringTeam} scored (we sold ${soldTeam}) → ` +
+          `exiting position ${pos.id} (${(pos.soldPrice * 100).toFixed(1)}¢ sold)`
+        );
+        this.closePosition(pos, "EVENT_EXIT");
+        closedCount++;
+      } else {
+        // FAVORABLE: opposite team scored → hold for mean reversion
+        this.log(
+          `🟢 FAVORABLE EVENT: ${scoringTeam} scored (we sold ${soldTeam}) → ` +
+          `holding position ${pos.id} (fade likely)`
+        );
+        heldCount++;
+      }
     }
 
-    // Cancel unfilled orders for this market — return shares to dry powder
-    for (const order of this.orders.values()) {
-      if (order.marketSlug !== marketSlug || order.status !== "PENDING") continue;
-      order.status = "CANCELLED";
-      this.stats.totalOrdersCancelled++;
-      this.returnShares(order.marketSlug, order.tokenId, order.shares);
-      const complement = this.getComplementToken(order.tokenId);
-      if (complement) this.returnShares(order.marketSlug, complement, order.shares);
-      cancelledCount++;
+    // Cancel unfilled orders on adverse events only
+    // (If we're holding positions, keep trying to fill entry orders)
+    if (closedCount > 0) {
+      for (const order of this.orders.values()) {
+        if (order.marketSlug !== marketSlug || order.status !== "PENDING") continue;
+        order.status = "CANCELLED";
+        this.stats.totalOrdersCancelled++;
+        this.returnShares(order.marketSlug, order.tokenId, order.shares);
+        const complement = this.getComplementToken(order.tokenId);
+        if (complement) this.returnShares(order.marketSlug, complement, order.shares);
+        cancelledCount++;
+      }
     }
 
-    if (closedCount > 0 || cancelledCount > 0) {
+    if (closedCount > 0 || heldCount > 0) {
       this.log(
-        `🏟️ Event exit: ${marketSlug} — closed ${closedCount} positions, cancelled ${cancelledCount} orders`,
+        `🏟️ Event (${scoringTeam}): ${marketSlug} — ` +
+        `closed ${closedCount} adverse, held ${heldCount} favorable` +
+        (cancelledCount > 0 ? `, cancelled ${cancelledCount} orders` : '')
       );
     }
   }

@@ -745,14 +745,36 @@ async function main(): Promise<void> {
         // Only exit if >5s since entry (don't exit on the same event that triggered entry)
         if (timeSinceEntry > 5000) {
           console.log(
-            `🏟️ CYCLE END (event exit): New scoring on ${marketSlug} — closing ${openPositions.length} positions ` +
+            `🏟️ CYCLE END (event check): New scoring on ${marketSlug} — evaluating ${openPositions.length} positions ` +
               `(${(timeSinceEntry / 1000).toFixed(0)}s hold, events: ${entryCount}→${recentEvents})`,
           );
-          dashboard.addGameEvent(marketSlug, `New scoring event — closing ${openPositions.length} positions`, "");
-          trader.handleGameEvent(marketSlug);
-          marketsWithPositions.delete(marketSlug);
-          entryEventCounts.delete(marketSlug);
-          gameEvents.setMarketIdle(marketSlug);
+          
+          // Get the latest event (most recent scoring team)
+          const marketInfo = gameEvents.getClassificationInfo(marketSlug);
+          const latestEvent = marketInfo.events[marketInfo.events.length - 1];
+          const scoringTeam = latestEvent?.team;
+          
+          // Get market data for team mapping
+          const market = detector.getMarket(marketSlug);
+          const marketOutcomes = market?.outcomes;
+          const tokenIds = market?.tokenIds;
+
+          // Call handleGameEvent with team info for adverse/favorable distinction
+          trader.handleGameEvent(marketSlug, scoringTeam, marketOutcomes, tokenIds);
+          
+          // Check if any positions still open (favorable events keep positions)
+          const remainingPositions = trader.getOpenPositions().filter(p => p.marketSlug === marketSlug);
+          if (remainingPositions.length === 0) {
+            // All positions closed (adverse events) - clean up
+            dashboard.addGameEvent(marketSlug, `Adverse event — closed all positions`, "");
+            marketsWithPositions.delete(marketSlug);
+            entryEventCounts.delete(marketSlug);
+            gameEvents.setMarketIdle(marketSlug);
+          } else {
+            // Some positions held (favorable events) - update count and stay active
+            dashboard.addGameEvent(marketSlug, `Favorable event — ${remainingPositions.length} positions held`, "");
+            entryEventCounts.set(marketSlug, recentEvents); // Update so we don't re-trigger on same event
+          }
         }
       }
     }
