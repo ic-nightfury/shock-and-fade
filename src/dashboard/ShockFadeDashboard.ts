@@ -440,6 +440,12 @@ export class ShockFadeDashboardServer {
         };
       });
 
+      // FILTER: Skip markets with no liquidity (zero bid or ask on both tokens)
+      const hasLiquidity = prices.some(p => p.bid > 0 && p.ask > 0);
+      if (!hasLiquidity) {
+        continue; // Skip this market - no tradeable prices
+      }
+
       // Determine game state
       let state = "upcoming";
       if (market.state === "active" || market.state === "pending_entry") {
