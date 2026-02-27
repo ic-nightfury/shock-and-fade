@@ -440,16 +440,19 @@ export class ShockFadeDashboardServer {
         };
       });
 
-      // FILTER: Skip markets with no liquidity (zero bid or ask on both tokens)
-      const hasLiquidity = prices.some(p => p.bid > 0 && p.ask > 0);
-      if (!hasLiquidity) {
-        continue; // Skip this market - no tradeable prices
+      // FILTER: Skip markets with no real liquidity on BOTH sides
+      // Need at least one token with proper bid AND ask (not 0)
+      const token1HasLiquidity = prices[0].bid > 0.02 && prices[0].ask > 0.02;
+      const token2HasLiquidity = prices[1].bid > 0.02 && prices[1].ask > 0.02;
+      
+      if (!token1HasLiquidity && !token2HasLiquidity) {
+        continue; // Skip markets with no tradeable liquidity
       }
 
-      // FILTER: Skip markets with extreme prices (game decided, no trade value)
-      const hasExtremePrice = prices.some(p => p.bid >= 0.99 || p.bid <= 0.01);
+      // FILTER: Skip decided games (extreme prices)
+      const hasExtremePrice = prices.some(p => p.bid >= 0.98 || p.bid <= 0.02);
       if (hasExtremePrice) {
-        continue; // Skip decided games (99%+ or 1%- prices)
+        continue; // Skip decided games
       }
 
       // Determine game state
